@@ -1,7 +1,7 @@
 <?php
-	$base = 'site';
+	$base = 'SITE';
 	$pass = 'mnVkrECAWnj96Yk4';
-	$user = 'root';
+	$user = 'toto';
 	$host = 'localhost';
 
 	//$base = 'qdeclercq';
