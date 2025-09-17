@@ -1,0 +1,13 @@
+name: CI/CD
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  lint:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v3
+      - name: PHP Lint
+        run: find . -name "*.php" -exec php -l {} \;
