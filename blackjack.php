@@ -1,5 +1,3 @@
-<!DOCTYPE html>
-
 <?php
 session_start();
 //Si un utilisateur non connecté essaye d'accéder à cette partie

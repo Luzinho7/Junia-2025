@@ -61,23 +61,41 @@ class User{
 		return $nb;
 	}
 
-	public function insert(){
-		$nb = 0;
-		$c = Base::getConnection();
-		$query = "SELECT max(userid) FROM users";
-		$data = $c->query($query);
-		$data = $data->fetch();
-		$id = $data['max(userid)'] + 1;
-		$salt = $id;
-		$this->setAttr("chmod", 0);
-		$query = "INSERT INTO users VALUES(".$id.", '".$this->login."','".sha1(sha1($this->password).$salt)."', '".$this->mail."', '".$this->chmod."')";
-		$nb = $c->exec($query);
-		$this->setAttr("userid", $c->LastInsertId());
-		return $nb;
-	}
+public function insert(){
+    $nb = 0;
+    $c = Base::getConnection();
+    $query = "SELECT max(userid) as max_id FROM users"; // Ajout de l'alias 'max_id' pour plus de clarté
+    $res = $c->query($query);
+    
+    // Vérification de la requête
+    if ($res === false) {
+        die("Erreur dans la requête SELECT : " . print_r($c->errorInfo(), true));
+    }
+    
+    $data = $res->fetch(PDO::FETCH_ASSOC); // Utilisation de FETCH_ASSOC pour plus de clarté
+    
+    // Si la table est vide, max_id sera NULL, on le gère ici.
+    $id = ($data['max_id'] === null) ? 1 : $data['max_id'] + 1;
+    $salt = $id;
+    $this->setAttr("chmod", 0);
 
+    // Utilisation d'une requête préparée pour plus de sécurité
+    $query_insert = "INSERT INTO users (userid, login, password, mail, chmod) VALUES (:userid, :login, :password, :mail, :chmod)";
+    $stmt = $c->prepare($query_insert);
+    $hashed_password = sha1(sha1($this->password).$salt);
 
-	public static function sendMail($userid, $mail){
+    $stmt->bindParam(':userid', $id, PDO::PARAM_INT);
+    $stmt->bindParam(':login', $this->login, PDO::PARAM_STR);
+    $stmt->bindParam(':password', $hashed_password, PDO::PARAM_STR);
+    $stmt->bindParam(':mail', $this->mail, PDO::PARAM_STR);
+    $stmt->bindParam(':chmod', $this->chmod, PDO::PARAM_INT);
+
+    $nb = $stmt->execute();
+    $this->setAttr("userid", $c->lastInsertId());
+    return $nb;
+}
+
+public static function sendMail($userid, $mail){
 		$c = Base::getConnection();
 		$token = sha1(random_int(0, 9999999999)); // test en local
 		//$token = sha1(rand(0, 9999999999)); //test en vrai
@@ -209,13 +227,19 @@ class User{
 	}
 
 	public static function getNbUser(){
-		$query = "select count(*) as nb from users";
-		$c = Base::getConnection();
-		$res = $c->query($query);
-		$data = $res->fetch();
-		$nb = $data['nb'];
-		return $nb;
-	}
+    $query = "select count(*) as nb from users";
+    $c = Base::getConnection();
+    $res = $c->query($query);
+    
+    // Ajout d'une vérification pour s'assurer que la requête a réussi
+    if ($res === false) {
+        die("Erreur dans la requête SQL.");
+    }
+    
+    $data = $res->fetch();
+    $nb = $data['nb'];
+    return $nb;
+}
 
 	public static function isAdmin($login){
 		$current = self::findByLogin($login);

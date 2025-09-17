@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  nginx:
+    container_name: nginx-junia
+    image: nginx:latest
+    ports:
+      - "8080:80"
+    networks:
+      - segregated-network
+    volumes:
+      - .:/var/www/html
+      - ./default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+
+  php:
+    container_name: php-junia
+    build: .
+    networks:
+      - segregated-network
+    volumes:
+      - .:/var/www/html
+
+  mysql:
+    container_name: mysql-junia
+    # Utilise le nouveau Dockerfile pour construire l'image
+    build:
+      context: .
+      dockerfile: mysql.Dockerfile
+      args:
+        # Passe le mot de passe à l'étape de construction via une variable d'environnement
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3310:3306"
+    networks:
+      - segregated-network
+    volumes:
+      - mysql-data:/var/lib/mysql
+    environment:
+      # Définit les variables d'environnement nécessaires à MySQL
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: SITE
+
+networks:
+  segregated-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
